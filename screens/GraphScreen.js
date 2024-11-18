@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Picker, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Picker, ScrollView } from 'react-native';
 import { Line, Bar, Radar } from 'react-chartjs-2';
 import 'chart.js/auto';
+import NavBar from './NavBar';
 
 export default function GraphScreen({ route }) {
   const [sensorData, setSensorData] = useState([]);
   const [chartType, setChartType] = useState('line');
   const [timeRange, setTimeRange] = useState('lastHour');
-  const [roomValues, setRoomValues] = useState({
-    quarto: 0,
-    sala: 0,
-  });
+  
   const { token, username } = route.params;
 
   useEffect(() => {
@@ -104,52 +102,11 @@ export default function GraphScreen({ route }) {
     }
   };
 
-  const handleIncrement = (room) => {
-    setRoomValues(prevState => ({
-      ...prevState,
-      [room]: prevState[room] + 1,
-    }));
-  };
-
-  const handleDecrement = (room) => {
-    setRoomValues(prevState => ({
-      ...prevState,
-      [room]: prevState[room] - 1,
-    }));
-  };
 
   return (
     <ScrollView style={styles.scrollContainer}>
       <View style={styles.container}>
         <Text style={styles.title}>Gráfico de Dados dos Sensores</Text>
-
-        <View style={styles.roomsContainer}>
-          <View style={styles.roomContainer}>
-            <Text style={styles.roomTitle}>Quarto</Text>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.roundButton} onPress={() => handleIncrement('quarto')}>
-                <Text style={styles.buttonText}>+</Text>
-              </TouchableOpacity>
-              <Text style={styles.numberText}>{roomValues.quarto}</Text>
-              <TouchableOpacity style={styles.roundButton} onPress={() => handleDecrement('quarto')}>
-                <Text style={styles.buttonText}>-</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.roomContainer}>
-            <Text style={styles.roomTitle}>Sala</Text>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.roundButton} onPress={() => handleIncrement('sala')}>
-                <Text style={styles.buttonText}>+</Text>
-              </TouchableOpacity>
-              <Text style={styles.numberText}>{roomValues.sala}</Text>
-              <TouchableOpacity style={styles.roundButton} onPress={() => handleDecrement('sala')}>
-                <Text style={styles.buttonText}>-</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
 
         <Picker
           selectedValue={timeRange}
@@ -187,6 +144,7 @@ export default function GraphScreen({ route }) {
         <View style={styles.chartContainer}>
           {renderChart(vibData)}
         </View>
+        <NavBar/>
       </View>
     </ScrollView>
   );
@@ -199,47 +157,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     marginBottom: 10,
-  },
-  roomsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  roomContainer: {
-    backgroundColor: '#f0f0f0',
-    padding: 30,
-    borderRadius: 10,
-    width: '48%',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ccc',
-  },
-  roomTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 30,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '60%',
-    alignItems: 'center',
-  },
-  roundButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 25,
-  },
-  numberText: {
-    fontSize: 25,
-    marginHorizontal: 10,
   },
   picker: {
     height: 40,

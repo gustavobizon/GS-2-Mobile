@@ -22,7 +22,7 @@ export default function LoginScreen({ navigation }) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('role', username.startsWith('admin_') ? 'admin' : 'user');
         localStorage.setItem('username', username);
-        navigation.navigate('GraphScreen', { token: data.token, username });
+        navigation.navigate('IotScreen', { token: data.token, username });
       } else {
         setErrorMessage(data.message || 'Erro no login');
       }
@@ -49,17 +49,14 @@ export default function LoginScreen({ navigation }) {
         onChangeText={setPassword}
       />
       
-      {/* Botão de Login */}
       <TouchableOpacity style={styles.roundButton} onPress={handleLogin}>
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>
 
-      {/* Botão de Registro */}
       <TouchableOpacity style={styles.roundButton} onPress={() => navigation.navigate('RegisterScreen')}>
         <Text style={styles.buttonText}>Registrar</Text>
       </TouchableOpacity>
 
-      {/* Botão de Recuperação de Senha */}
       <TouchableOpacity style={styles.roundButton} onPress={() => navigation.navigate('RecoverScreen')}>
         <Text style={styles.buttonText}>Recuperar Senha</Text>
       </TouchableOpacity>
@@ -75,7 +72,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     paddingVertical: 12,
     paddingHorizontal: 25,
-    borderRadius: 25, // Tornando o botão redondo
+    borderRadius: 25, 
     alignItems: 'center',
     marginTop: 10,
   },
