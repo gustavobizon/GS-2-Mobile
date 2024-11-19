@@ -20,7 +20,6 @@ export default function GraphScreen({ route, navigation }) {
         const data = await response.json();
 
         if (Array.isArray(data)) {
-          // Organizar os dados de temperatura para os gráficos
           const organizedTempData = {
             labels: data.map((item) => item.timestamp),
             datasets: [
@@ -41,19 +40,30 @@ export default function GraphScreen({ route, navigation }) {
             ],
           };
 
-          // Organizar os dados de luz para o gráfico
           const organizedLightData = {
             labels: data.filter((item) => item.tipo_sensor === 'luz').map((item) => item.timestamp),
-            datasets: [
-              {
-                label: 'Estado da Luz',
-                data: data.filter((item) => item.tipo_sensor === 'luz').map((item) => item.valor === 1 ? 'Ligada' : 'Desligada'),
-                backgroundColor: 'rgba(0, 255, 0, 0.6)',
-                borderColor: 'rgba(0, 255, 0, 1)',
-                fill: false,
-              },
-            ],
+            datasets: []
           };
+
+          const roomColors = {
+            quarto: 'rgba(255, 0, 0, 0.6)',
+            sala: 'rgba(0, 0, 255, 0.6)',
+            cozinha: 'rgba(0, 255, 0, 0.6)',
+            banheiro: 'rgba(255, 255, 0, 0.6)',
+          };
+
+          ['quarto', 'sala', 'cozinha', 'banheiro'].forEach((room) => {
+            const roomData = data.filter((item) => item.tipo_sensor === 'luz' && item.ambiente === room);
+            if (roomData.length > 0) {
+              organizedLightData.datasets.push({
+                label: `Estado da Luz - ${room}`,
+                data: roomData.map((item) => item.valor === 1 ? 1 : 0),
+                backgroundColor: roomColors[room],
+                borderColor: roomColors[room],
+                fill: false,
+              });
+            }
+          });
 
           setSensorData(organizedTempData);
           setLightData(organizedLightData);
@@ -113,8 +123,8 @@ export default function GraphScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView style={styles.scrollContainer}>
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.title}>Gráficos de Consumo e Eficiência Energética</Text>
 
         <Picker
@@ -145,9 +155,17 @@ export default function GraphScreen({ route, navigation }) {
           <Text style={styles.subTitle}>Estado da Luz</Text>
           {renderLightChart()}
         </View>
-      </View>
+      </ScrollView>
 
       <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.navigationButton}
+          onPress={() => navigation.navigate('GraphScreen', { token })}
+        >
+          <Icon name="bar-chart" size={24} color="#fff" />
+          <Text style={styles.navigationButtonText}>GraphScreen</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.navigationButton}
           onPress={() => navigation.navigate('IotScreen', { token })}
@@ -156,13 +174,17 @@ export default function GraphScreen({ route, navigation }) {
           <Text style={styles.navigationButtonText}>IotScreen</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    flex: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#ccc',
+    justifyContent: 'flex-end',
   },
   title: {
     fontSize: 18,
@@ -182,25 +204,33 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   scrollContainer: {
-    flex: 1,
+    paddingBottom: 100,  
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 10,
-    backgroundColor: '#007bff',
-    alignItems: 'center',
+    elevation: 3,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
   },
   navigationButton: {
+    backgroundColor: '#007bff',
+    borderRadius: 10,
+    padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    justifyContent: 'center',
+    marginHorizontal: 5,
+    width: 140,
   },
   navigationButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
     marginLeft: 10,
   },
 });
