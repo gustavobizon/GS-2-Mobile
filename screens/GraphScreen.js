@@ -1,73 +1,72 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Picker, ScrollView } from 'react-native';
-import { Line, Bar, Radar } from 'react-chartjs-2';
+import { View, Text, StyleSheet, Picker, ScrollView, TouchableOpacity } from 'react-native';
+import { Line, Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
-import NavBar from './NavBar';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
-export default function GraphScreen({ route }) {
-  const [sensorData, setSensorData] = useState([]);
+export default function GraphScreen({ route, navigation }) {
+  const [sensorData, setSensorData] = useState(null);
+  const [lightData, setLightData] = useState(null);
   const [chartType, setChartType] = useState('line');
   const [timeRange, setTimeRange] = useState('lastHour');
-  
-  const { token, username } = route.params;
+  const { token } = route.params;
 
   useEffect(() => {
     const fetchSensorData = async () => {
       try {
         const response = await fetch('http://localhost:3000/dados-sensores', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
-        const filteredData = filterSensorData(data);
-        setSensorData(filteredData);
+
+        if (Array.isArray(data)) {
+          // Organizar os dados de temperatura para os gráficos
+          const organizedTempData = {
+            labels: data.map((item) => item.timestamp),
+            datasets: [
+              {
+                label: 'Temperatura no Quarto',
+                data: data.filter((item) => item.ambiente === 'quarto' && item.tipo_sensor === 'temperatura').map((item) => item.valor),
+                backgroundColor: 'rgba(255, 0, 0, 0.6)',
+                borderColor: 'rgba(255, 0, 0, 1)',
+                fill: true,
+              },
+              {
+                label: 'Temperatura na Sala',
+                data: data.filter((item) => item.ambiente === 'sala' && item.tipo_sensor === 'temperatura').map((item) => item.valor),
+                backgroundColor: 'rgba(0, 0, 255, 0.6)',
+                borderColor: 'rgba(0, 0, 255, 1)',
+                fill: true,
+              },
+            ],
+          };
+
+          // Organizar os dados de luz para o gráfico
+          const organizedLightData = {
+            labels: data.filter((item) => item.tipo_sensor === 'luz').map((item) => item.timestamp),
+            datasets: [
+              {
+                label: 'Estado da Luz',
+                data: data.filter((item) => item.tipo_sensor === 'luz').map((item) => item.valor === 1 ? 'Ligada' : 'Desligada'),
+                backgroundColor: 'rgba(0, 255, 0, 0.6)',
+                borderColor: 'rgba(0, 255, 0, 1)',
+                fill: false,
+              },
+            ],
+          };
+
+          setSensorData(organizedTempData);
+          setLightData(organizedLightData);
+        } else {
+          console.error('Formato inesperado dos dados recebidos:', data);
+        }
       } catch (error) {
-        console.error('Erro ao buscar dados dos sensores:', error);
+        console.error('Erro ao buscar dados:', error);
       }
     };
 
     fetchSensorData();
   }, [token, timeRange]);
-
-  const filterSensorData = (data) => {
-    const now = new Date();
-    return data.filter(item => {
-      const itemDate = new Date(item.timestamp);
-      switch (timeRange) {
-        case 'lastHour':
-          return itemDate >= new Date(now - 60 * 60 * 1000);
-        case 'last24Hours':
-          return itemDate >= new Date(now - 24 * 60 * 60 * 1000);
-        case 'lastWeek':
-          return itemDate >= new Date(now - 7 * 24 * 60 * 60 * 1000);
-        case 'last30Days':
-          return itemDate >= new Date(now - 30 * 24 * 60 * 60 * 1000);
-        case 'allData':
-          return true; 
-        default:
-          return true;
-      }
-    });
-  };
-
-  const createChartData = (label, dataKey, color) => ({
-    labels: sensorData.map(item => new Date(item.timestamp).toLocaleTimeString()),
-    datasets: [
-      {
-        label,
-        data: sensorData.map(item => item[dataKey]),
-        backgroundColor: color,
-        borderColor: color,
-        fill: false,
-        tension: 0.1,
-      },
-    ],
-  });
-
-  const tempData = createChartData('Temperatura', 'temperatura', 'rgba(255, 0, 0, 1)');
-  const umiData = createChartData('Umidade', 'umidade', 'rgba(0, 0, 255, 1)');
-  const vibData = createChartData('Vibração', 'vibracao', 'rgba(0, 255, 0, 1)');
 
   const options = {
     responsive: true,
@@ -76,7 +75,7 @@ export default function GraphScreen({ route }) {
       x: {
         title: {
           display: true,
-          text: 'Tempo',
+          text: 'Data e Hora',
         },
       },
       y: {
@@ -89,24 +88,34 @@ export default function GraphScreen({ route }) {
     },
   };
 
-  const renderChart = (data) => {
-    switch (chartType) {
-      case 'line':
-        return <Line data={data} options={options} />;
-      case 'bar':
-        return <Bar data={data} options={options} />;
-      case 'radar':
-        return <Radar data={data} options={options} />;
-      default:
-        return <Line data={data} options={options} />;
+  const renderTemperatureChart = () => {
+    if (!sensorData || sensorData.datasets.length === 0) {
+      return <Text>Nenhum dado de temperatura disponível para exibição</Text>;
     }
+
+    return chartType === 'line' ? (
+      <Line data={sensorData} options={options} />
+    ) : (
+      <Bar data={sensorData} options={options} />
+    );
   };
 
+  const renderLightChart = () => {
+    if (!lightData || lightData.datasets.length === 0) {
+      return <Text>Nenhum dado de luz disponível para exibição</Text>;
+    }
+
+    return chartType === 'line' ? (
+      <Line data={lightData} options={options} />
+    ) : (
+      <Bar data={lightData} options={options} />
+    );
+  };
 
   return (
     <ScrollView style={styles.scrollContainer}>
       <View style={styles.container}>
-        <Text style={styles.title}>Gráfico de Dados dos Sensores</Text>
+        <Text style={styles.title}>Gráficos de Consumo e Eficiência Energética</Text>
 
         <Picker
           selectedValue={timeRange}
@@ -127,24 +136,25 @@ export default function GraphScreen({ route }) {
         >
           <Picker.Item label="Linha" value="line" />
           <Picker.Item label="Barra" value="bar" />
-          <Picker.Item label="Radar" value="radar" />
         </Picker>
 
-        <Text style={styles.chartLabel}>Temperatura</Text>
         <View style={styles.chartContainer}>
-          {renderChart(tempData)}
-        </View>
+          <Text style={styles.subTitle}>Temperatura</Text>
+          {renderTemperatureChart()}
 
-        <Text style={styles.chartLabel}>Umidade</Text>
-        <View style={styles.chartContainer}>
-          {renderChart(umiData)}
+          <Text style={styles.subTitle}>Estado da Luz</Text>
+          {renderLightChart()}
         </View>
+      </View>
 
-        <Text style={styles.chartLabel}>Vibração</Text>
-        <View style={styles.chartContainer}>
-          {renderChart(vibData)}
-        </View>
-        <NavBar/>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.navigationButton}
+          onPress={() => navigation.navigate('IotScreen', { token })}
+        >
+          <Icon name="devices" size={24} color="#fff" />
+          <Text style={styles.navigationButtonText}>IotScreen</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -158,17 +168,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 10,
   },
+  subTitle: {
+    fontSize: 16,
+    marginTop: 20,
+    marginBottom: 10,
+  },
   picker: {
     height: 40,
-    width: 150,
     marginBottom: 20,
-    borderColor: '#000',
-    borderWidth: 1,
-    borderRadius: 5,
-  },
-  chartLabel: {
-    fontSize: 16,
-    marginVertical: 10,
   },
   chartContainer: {
     height: 300,
@@ -176,5 +183,24 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    backgroundColor: '#007bff',
+    alignItems: 'center',
+  },
+  navigationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+  },
+  navigationButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 10,
   },
 });

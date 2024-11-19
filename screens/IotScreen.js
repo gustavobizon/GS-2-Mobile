@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Button, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import NavBar from './NavBar';
+import PowerSettingsNewRoundedIcon from '@mui/icons-material/PowerSettingsNewRounded';
 
-export default function IotScreen({ route }) {
+export default function IotScreen({ route, navigation }) {
   const [roomValues, setRoomValues] = useState({ quarto: 0, sala: 0 });
   const [lightStatus, setLightStatus] = useState({
     quarto: false,
@@ -11,6 +11,22 @@ export default function IotScreen({ route }) {
     cozinha: false,
     banheiro: false,
   });
+
+  const [temperatureStatus, setTemperatureStatus] = useState({
+    quarto: false,
+    sala: false,
+  });
+
+  const toggleTemperatureStatus = (room) => {
+    setTemperatureStatus((prevStatus) => {
+      const newStatus = !prevStatus[room];
+      // Se o novo status for desligado (false), define a temperatura como 0
+      if (!newStatus) {
+        setRoomValues((prevValues) => ({ ...prevValues, [room]: 0 }));
+      }
+      return { ...prevStatus, [room]: newStatus };
+    });
+  };
 
   const [iconColors, setIconColors] = useState({
     quarto: '#000',
@@ -31,26 +47,29 @@ export default function IotScreen({ route }) {
   const generateRandomNumbers = () => {
     const newRandomNumbers = {};
     const newIconColors = {};
+    const newButtonColors = {};
 
     // Gera um número aleatório para cada ambiente
     ['quarto', 'sala', 'cozinha', 'banheiro'].forEach((room) => {
       const number = Math.floor(Math.random() * 11);
       newRandomNumbers[room] = number;
       newIconColors[room] = number < 5 ? 'black' : 'blue';
+      newButtonColors[room] = number < 5 ? 'black' : 'blue';
     });
 
     setRandomNumbers(newRandomNumbers);
     setIconColors(newIconColors);
+    setButtonColors(newButtonColors);
   };
 
   useEffect(() => {
     generateRandomNumbers();
-
-    const interval = setInterval(generateRandomNumbers, 15000);
-
-
+  
+    const interval = setInterval(generateRandomNumbers, 25000);
+  
     return () => clearInterval(interval);
   }, []);
+  
 
   // Função para alterar a temperatura
   const handleChangeTemperature = (room, value) => {
@@ -60,10 +79,18 @@ export default function IotScreen({ route }) {
     }
   };
 
+  const [buttonColors, setButtonColors] = useState({
+    quarto: '#000', 
+    sala: '#000',
+  })
   // Função para alternar o estado da luz
   const toggleLight = (room) => {
     const newStatus = !lightStatus[room];
     setLightStatus((prevStatus) => ({ ...prevStatus, [room]: newStatus }));
+    setButtonColors((prevColors) => ({
+      ...prevColors,
+      [room]: newStatus ? '#007bff' : '#000', // Azul quando ligado, preto quando desligado
+    }));
   };
 
   // Função para enviar dados para o servidor
@@ -72,27 +99,22 @@ export default function IotScreen({ route }) {
       const dataToSend = [];
 
       Object.keys(roomValues).forEach((room) => {
-        const temperature = roomValues[room];
-        if (temperature !== undefined) {
-          dataToSend.push({
-            sensor_id: room === 'quarto' ? 1 : 2,
-            tipo_sensor: 'temperatura',
-            ambiente: room,
-            valor: temperature,
-          });
-        }
-      });
+        const temperature = temperatureStatus[room] ? roomValues[room] : roomValues[room];
+      dataToSend.push({
+        sensor_id: room === 'quarto' ? 1 : 2,
+        tipo_sensor: 'temperatura',
+        ambiente: room,
+        valor: temperature,
+      });});
 
       Object.keys(lightStatus).forEach((room) => {
         const lightStatusValue = lightStatus[room];
-        if (lightStatusValue !== undefined) {
-          dataToSend.push({
-            sensor_id: room === 'quarto' ? 1 : 2,
-            tipo_sensor: 'luz',
-            ambiente: room,
-            valor: lightStatusValue ? 1 : 0,
-          });
-        }
+        dataToSend.push({
+          sensor_id: room === 'quarto' ? 1 : 2,
+          tipo_sensor: 'luz',
+          ambiente: room,
+          valor: lightStatusValue ? 1 : 0,
+        });
       });
 
       if (dataToSend.length > 0) {
@@ -124,10 +146,8 @@ export default function IotScreen({ route }) {
       const data = await response.json();
 
       const roomData = {
-        quarto: 0,
-        sala: 0,
-        cozinha: 0,
-        banheiro: 0,
+        quarto: null,
+        sala: null,
       };
 
       const lightData = {
@@ -139,7 +159,7 @@ export default function IotScreen({ route }) {
 
       data.forEach(item => {
         if (item.tipo_sensor === 'temperatura' && (item.ambiente === 'quarto' || item.ambiente === 'sala')) {
-          roomData[item.ambiente] = Math.min(Math.max(item.valor, 15), 29); 
+          roomData[item.ambiente] = Math.min(Math.max(item.valor, 0), 29); 
         } else if (item.tipo_sensor === 'luz') {
           lightData[item.ambiente] = item.valor === 1;
         }
@@ -163,23 +183,32 @@ export default function IotScreen({ route }) {
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Temperatura</Text>
         <View style={styles.roomsContainer}>
-          {['quarto', 'sala'].map((room) => (
+        {['quarto', 'sala'].map((room) => (
             <View key={room} style={styles.roomContainer}>
               <Text style={styles.roomTitle}>{room.charAt(0).toUpperCase() + room.slice(1)}</Text>
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={styles.roundButton}
-                  onPress={() => handleChangeTemperature(room, roomValues[room] + 1)} 
-                >
+                  onPress={() => handleChangeTemperature(room, roomValues[room] + 1)}>
                   <Text style={styles.buttonText}>+</Text>
                 </TouchableOpacity>
-                <Text style={styles.numberText}>{roomValues[room]}</Text>
+                <Text style={styles.numberText}>
+                { roomValues[room]}
+              </Text>
                 <TouchableOpacity
                   style={styles.roundButton}
-                  onPress={() => handleChangeTemperature(room, roomValues[room] - 1)} 
-                >
+                  onPress={() => handleChangeTemperature(room, roomValues[room] - 1)}>
                   <Text style={styles.buttonText}>-</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                style={styles.powerButton}
+                onPress={() => toggleTemperatureStatus(room)}
+              >
+                <PowerSettingsNewRoundedIcon
+                  color={temperatureStatus[room] ? 'green' : 'red'}
+                  style={styles.powerIcon}
+                />
+              </TouchableOpacity>
               </View>
             </View>
           ))}
@@ -220,8 +249,35 @@ export default function IotScreen({ route }) {
         <Icon name="send" size={30} color="#fff" />
         <Text style={styles.sendButtonText}>Enviar Dados</Text>
       </TouchableOpacity>
+      <View
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        elevation: 3,
+        backgroundColor: '#fff',
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingVertical: 10,
+      }}
+    >
+      <TouchableOpacity
+        style={styles.navigationButton}
+        onPress={() => navigation.navigate('GraphScreen', { token })}
+      >
+        <Icon name="bar-chart" size={24} color="#fff" />
+        <Text style={styles.navigationButtonText}>GraphScreen</Text>
+      </TouchableOpacity>
 
-      <NavBar />
+      <TouchableOpacity
+        style={styles.navigationButton}
+        onPress={() => navigation.navigate('IotScreen', { token })}
+      >
+        <Icon name="devices" size={24} color="#fff" />
+        <Text style={styles.navigationButtonText}>IotScreen</Text>
+      </TouchableOpacity>
+    </View>
     </View>
   );
 }
@@ -230,6 +286,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  navigationButton: {
+    backgroundColor: '#007bff',
+    borderRadius: 10,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 5,
+    width: 140,
+  },
+  navigationButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
   sectionContainer: {
     marginBottom: 40,

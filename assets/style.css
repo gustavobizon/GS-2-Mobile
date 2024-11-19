@@ -1,0 +1,123 @@
+.container {
+  padding: 20px;
+}
+
+.title {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.picker {
+  height: 40px;
+  margin-bottom: 20px;
+}
+
+.chart-label {
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+.chart-container {
+  height: 300px;
+  margin-bottom: 20px;
+}
+
+.scroll-container {
+  flex: 1;
+}
+
+.navigation-button {
+  background-color: #007bff;
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+  width: 140px;
+}
+
+.navigation-button-text {
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.section-container {
+  margin-bottom: 40px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.rooms-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.room-container {
+  text-align: center;
+}
+
+.room-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.round-button {
+  background-color: #007bff;
+  border-radius: 50%;
+  padding: 10px;
+  margin: 0 10px;
+}
+
+.button-text {
+  color: #fff;
+  font-size: 18px;
+}
+
+.number-text {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0 10px;
+}
+
+.light-button {
+  padding: 10px;
+  border-radius: 50%;
+  margin: 10px 0;
+}
+
+.person-icon {
+  margin-top: 10px;
+}
+
+.send-button {
+  background-color: #007bff;
+  padding: 15px;
+  border-radius: 50px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-button-text {
+  color: #fff;
+  font-size: 18px;
+  margin-left: 10px;
+}
