@@ -18,42 +18,51 @@ export default function GraphScreen({ route, navigation }) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
-
+  
         if (Array.isArray(data)) {
           const organizedTempData = {
-            labels: data.map((item) => item.timestamp),
+            labels: data
+              .map((item) => item.timestamp)
+              .filter((timestamp) => timestamp !== null && timestamp !== undefined),
             datasets: [
               {
                 label: 'Temperatura no Quarto',
-                data: data.filter((item) => item.ambiente === 'quarto' && item.tipo_sensor === 'temperatura').map((item) => item.valor),
+                data: data
+                  .filter((item) => item.ambiente === 'quarto' && item.tipo_sensor === 'temperatura' && item.valor !== null)
+                  .map((item) => item.valor),
                 backgroundColor: 'rgba(255, 0, 0, 0.6)',
                 borderColor: 'rgba(255, 0, 0, 1)',
                 fill: true,
               },
               {
                 label: 'Temperatura na Sala',
-                data: data.filter((item) => item.ambiente === 'sala' && item.tipo_sensor === 'temperatura').map((item) => item.valor),
+                data: data
+                  .filter((item) => item.ambiente === 'sala' && item.tipo_sensor === 'temperatura' && item.valor !== null)
+                  .map((item) => item.valor),
                 backgroundColor: 'rgba(0, 0, 255, 0.6)',
                 borderColor: 'rgba(0, 0, 255, 1)',
                 fill: true,
               },
             ],
           };
-
+  
           const organizedLightData = {
-            labels: data.filter((item) => item.tipo_sensor === 'luz').map((item) => item.timestamp),
-            datasets: []
+            labels: data
+              .filter((item) => item.tipo_sensor === 'luz' && item.timestamp !== null)
+              .map((item) => item.timestamp),
+            datasets: [],
           };
-
+  
           const roomColors = {
             quarto: 'rgba(255, 0, 0, 0.6)',
             sala: 'rgba(0, 0, 255, 0.6)',
             cozinha: 'rgba(0, 255, 0, 0.6)',
             banheiro: 'rgba(255, 255, 0, 0.6)',
           };
-
+  
           ['quarto', 'sala', 'cozinha', 'banheiro'].forEach((room) => {
-            const roomData = data.filter((item) => item.tipo_sensor === 'luz' && item.ambiente === room);
+            const roomData = data
+              .filter((item) => item.tipo_sensor === 'luz' && item.ambiente === room && item.valor !== null);
             if (roomData.length > 0) {
               organizedLightData.datasets.push({
                 label: `Estado da Luz - ${room}`,
@@ -64,7 +73,7 @@ export default function GraphScreen({ route, navigation }) {
               });
             }
           });
-
+  
           setSensorData(organizedTempData);
           setLightData(organizedLightData);
         } else {
@@ -74,7 +83,7 @@ export default function GraphScreen({ route, navigation }) {
         console.error('Erro ao buscar dados:', error);
       }
     };
-
+  
     fetchSensorData();
   }, [token, timeRange]);
 
