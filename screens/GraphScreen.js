@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Picker, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Line, Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Picker } from '@react-native-picker/picker';
 
 export default function GraphScreen({ route, navigation }) {
   const [sensorData, setSensorData] = useState(null);
@@ -18,64 +19,10 @@ export default function GraphScreen({ route, navigation }) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
-  
+
         if (Array.isArray(data)) {
-          const organizedTempData = {
-            labels: data
-              .map((item) => item.timestamp)
-              .filter((timestamp) => timestamp !== null && timestamp !== undefined),
-            datasets: [
-              {
-                label: 'Temperatura no Quarto',
-                data: data
-                  .filter((item) => item.ambiente === 'quarto' && item.tipo_sensor === 'temperatura' && item.valor !== null)
-                  .map((item) => item.valor),
-                backgroundColor: 'rgba(255, 0, 0, 0.6)',
-                borderColor: 'rgba(255, 0, 0, 1)',
-                fill: true,
-              },
-              {
-                label: 'Temperatura na Sala',
-                data: data
-                  .filter((item) => item.ambiente === 'sala' && item.tipo_sensor === 'temperatura' && item.valor !== null)
-                  .map((item) => item.valor),
-                backgroundColor: 'rgba(0, 0, 255, 0.6)',
-                borderColor: 'rgba(0, 0, 255, 1)',
-                fill: true,
-              },
-            ],
-          };
-  
-          const organizedLightData = {
-            labels: data
-              .filter((item) => item.tipo_sensor === 'luz' && item.timestamp !== null)
-              .map((item) => item.timestamp),
-            datasets: [],
-          };
-  
-          const roomColors = {
-            quarto: 'rgba(255, 0, 0, 0.6)',
-            sala: 'rgba(0, 0, 255, 0.6)',
-            cozinha: 'rgba(0, 255, 0, 0.6)',
-            banheiro: 'rgba(255, 255, 0, 0.6)',
-          };
-  
-          ['quarto', 'sala', 'cozinha', 'banheiro'].forEach((room) => {
-            const roomData = data
-              .filter((item) => item.tipo_sensor === 'luz' && item.ambiente === room && item.valor !== null);
-            if (roomData.length > 0) {
-              organizedLightData.datasets.push({
-                label: `Estado da Luz - ${room}`,
-                data: roomData.map((item) => item.valor === 1 ? 1 : 0),
-                backgroundColor: roomColors[room],
-                borderColor: roomColors[room],
-                fill: false,
-              });
-            }
-          });
-  
-          setSensorData(organizedTempData);
-          setLightData(organizedLightData);
+          setSensorData(data); // Dados brutos
+          setLightData(data); // Dados brutos
         } else {
           console.error('Formato inesperado dos dados recebidos:', data);
         }
@@ -83,9 +30,101 @@ export default function GraphScreen({ route, navigation }) {
         console.error('Erro ao buscar dados:', error);
       }
     };
-  
+
     fetchSensorData();
-  }, [token, timeRange]);
+  }, [token]);
+
+  const filterDataByTimeRange = (data) => {
+    const now = new Date();
+    return data.filter(item => {
+      const itemDate = new Date(item.timestamp);
+      switch (timeRange) {
+        case 'lastHour':
+          return itemDate >= new Date(now - 60 * 60 * 1000);
+        case 'last24Hours':
+          return itemDate >= new Date(now - 24 * 60 * 60 * 1000);
+        case 'lastWeek':
+          return itemDate >= new Date(now - 7 * 24 * 60 * 60 * 1000);
+        case 'last30Days':
+          return itemDate >= new Date(now - 30 * 24 * 60 * 60 * 1000);
+        case 'allData':
+        default:
+          return true;
+      }
+    });
+  };
+
+  const prepareTemperatureData = () => {
+    if (!sensorData) return null;
+
+    const filteredData = filterDataByTimeRange(sensorData);
+
+    return {
+      labels: filteredData
+        .map((item) => item.timestamp)
+        .filter((timestamp) => timestamp !== null && timestamp !== undefined),
+      datasets: [
+        {
+          label: 'Temperatura no Quarto',
+          data: filteredData
+            .filter((item) => item.ambiente === 'quarto' && item.tipo_sensor === 'temperatura' && item.valor !== null)
+            .map((item) => item.valor),
+          backgroundColor: 'rgba(255, 0, 0, 0.6)',
+          borderColor: 'rgba(255, 0, 0, 1)',
+          fill: true,
+        },
+        {
+          label: 'Temperatura na Sala',
+          data: filteredData
+            .filter((item) => item.ambiente === 'sala' && item.tipo_sensor === 'temperatura' && item.valor !== null)
+            .map((item) => item.valor),
+          backgroundColor: 'rgba(0, 0, 255, 0.6)',
+          borderColor: 'rgba(0, 0, 255, 1)',
+          fill: true,
+        },
+      ],
+    };
+  };
+
+  const prepareLightData = () => {
+    if (!lightData) return null;
+
+    const filteredData = filterDataByTimeRange(lightData);
+
+    const roomColors = {
+      quarto: 'rgba(255, 0, 0, 0.6)',
+      sala: 'rgba(0, 0, 255, 0.6)',
+      cozinha: 'rgba(0, 255, 0, 0.6)',
+      banheiro: 'rgba(255, 255, 0, 0.6)',
+    };
+
+    const datasets = ['quarto', 'sala', 'cozinha', 'banheiro'].map((room) => {
+      const roomData = filteredData.filter(
+        (item) => item.tipo_sensor === 'luz' && item.ambiente === room && item.valor !== null
+      );
+
+      if (roomData.length > 0) {
+        return {
+          label: `Estado da Luz - ${room}`,
+          data: roomData.map((item) => (item.valor === 1 ? 1 : 0)),
+          backgroundColor: roomColors[room],
+          borderColor: roomColors[room],
+          fill: false,
+        };
+      }
+      return null;
+    });
+
+    return {
+      labels: filteredData
+        .filter((item) => item.tipo_sensor === 'luz' && item.timestamp !== null)
+        .map((item) => item.timestamp),
+      datasets: datasets.filter(Boolean),
+    };
+  };
+
+  const temperatureData = prepareTemperatureData();
+  const lightDataPrepared = prepareLightData();
 
   const options = {
     responsive: true,
@@ -108,26 +147,26 @@ export default function GraphScreen({ route, navigation }) {
   };
 
   const renderTemperatureChart = () => {
-    if (!sensorData || sensorData.datasets.length === 0) {
+    if (!temperatureData || temperatureData.datasets.length === 0) {
       return <Text>Nenhum dado de temperatura disponível para exibição</Text>;
     }
 
     return chartType === 'line' ? (
-      <Line data={sensorData} options={options} />
+      <Line data={temperatureData} options={options} />
     ) : (
-      <Bar data={sensorData} options={options} />
+      <Bar data={temperatureData} options={options} />
     );
   };
 
   const renderLightChart = () => {
-    if (!lightData || lightData.datasets.length === 0) {
+    if (!lightDataPrepared || lightDataPrepared.datasets.length === 0) {
       return <Text>Nenhum dado de luz disponível para exibição</Text>;
     }
 
     return chartType === 'line' ? (
-      <Line data={lightData} options={options} />
+      <Line data={lightDataPrepared} options={options} />
     ) : (
-      <Bar data={lightData} options={options} />
+      <Bar data={lightDataPrepared} options={options} />
     );
   };
 
@@ -165,7 +204,6 @@ export default function GraphScreen({ route, navigation }) {
           {renderLightChart()}
         </View>
       </ScrollView>
-
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.navigationButton}
@@ -190,9 +228,9 @@ export default function GraphScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#ccc',
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderColor: 'transparent',
     justifyContent: 'flex-end',
   },
   title: {
