@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Button, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import PowerSettingsNewRoundedIcon from '@mui/icons-material/PowerSettingsNewRounded';
 
@@ -20,7 +20,7 @@ export default function IotScreen({ route, navigation }) {
   const toggleTemperatureStatus = (room) => {
     setTemperatureStatus((prevStatus) => {
       const newStatus = !prevStatus[room];
-      // Se o novo status for desligado (false), define a temperatura como 0
+      
       if (!newStatus) {
         setRoomValues((prevValues) => ({ ...prevValues, [room]: 0 }));
       }
@@ -34,7 +34,7 @@ export default function IotScreen({ route, navigation }) {
     cozinha: '#000',
     banheiro: '#000',
   }); 
-  
+
   const [randomNumbers, setRandomNumbers] = useState({
     quarto: 0,
     sala: 0,
